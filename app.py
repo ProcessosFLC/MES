@@ -12,21 +12,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Desativa o atalho de teclado "C" (Clear Cache) do Streamlit
-st.markdown(
-    """
-    <script>
-    const handleKeyDown = (e) => {
-        if (e.key === 'c' || e.key === 'C') {
-            e.stopPropagation();
-        }
-    };
-    document.addEventListener('keydown', handleKeyDown, true);
-    </script>
-    """,
-    unsafe_allow_html=True
-)
-
 # -------------------------------------------------------------------------
 # DICIONÁRIO DE CÓDIGOS E DESCRIÇÕES (PERDAS / PARADAS)
 # -------------------------------------------------------------------------
@@ -229,6 +214,11 @@ with col_top2:
 
 if maquina_selecionada != "--- Selecione uma Máquina ---":
 
+    st.markdown(
+        f"<h1 style='text-align: center;'>{maquina_selecionada} - Turno {turno_selecionado}</h1>",
+        unsafe_allow_html=True
+    )
+
     # Busca o último horário para preenchimento automático contínuo
     ultimo_fim = obter_ultimo_registro_maquina_turno(maquina_selecionada, turno_selecionado)
     if ultimo_fim:
@@ -243,7 +233,7 @@ if maquina_selecionada != "--- Selecione uma Máquina ---":
         if st.session_state["msg_sucesso"]:
             st.success(st.session_state["msg_sucesso"])
 
-        with st.form("form_apontamento", clear_on_submit=False):
+        with st.form("form_apontamento", clear_on_submit=True):
             c1, c2, c3, c4 = st.columns([1.5, 2, 2, 1])
             with c1:
                 op_input = st.text_input("OP:", value=st.session_state["persist_op"])
@@ -256,9 +246,9 @@ if maquina_selecionada != "--- Selecione uma Máquina ---":
 
             t1, t2, t3, t4 = st.columns([1, 1, 1, 1])
             with t1:
-                hora_inicio = st.time_input("Início:", value=hora_inicio_calc)
+                hora_inicio = st.time_input("Início:", value=hora_inicio_calc, step=60)
             with t2:
-                hora_fim = st.time_input("Fim:", value=dt_fim_sugerido)
+                hora_fim = st.time_input("Fim:", value=dt_fim_sugerido, step=60)
             with t3:
                 qtd_boa_kg = st.number_input("Prod. Boa (kg):", min_value=0.0, step=1.0) if status_atividade == "Produzindo" else 0.0
             with t4:
