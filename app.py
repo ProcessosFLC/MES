@@ -182,6 +182,42 @@ def obter_ultimo_registro_maquina_turno(maquina, turno):
     finally:
         release_conn(conn)
 
+def obter_registros_do_dia(maquina, turno):
+    """Busca todos os horários já lançados hoje (e ontem, se turno C) para checar conflito."""
+    conn = get_conn()
+    try:
+        hoje = datetime.now().date()
+        ontem = hoje - timedelta(days=1)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT hora_inicio, hora_fim FROM apontamentos
+            WHERE maquina = %s AND turno = %s AND (data_registro::date = %s OR data_registro::date = %s)
+        """, (maquina, turno, hoje, ontem))
+        return cursor.fetchall()
+    finally:
+        release_conn(conn)
+
+def verificar_conflito(maquina, turno, novo_ini, novo_fim):
+    """Retorna (True, hora_ini_conflitante, hora_fim_conflitante) se o novo intervalo
+    sobrepor algum lançamento já existente naquele dia/turno/máquina."""
+    registros = obter_registros_do_dia(maquina, turno)
+
+    novo_ini_min = novo_ini.hour * 60 + novo_ini.minute
+    novo_fim_min = novo_fim.hour * 60 + novo_fim.minute
+    if novo_fim_min <= novo_ini_min:
+        novo_fim_min += 24 * 60
+
+    for h_ini_str, h_fim_str in registros:
+        ini_min = int(h_ini_str[:2]) * 60 + int(h_ini_str[3:5])
+        fim_min = int(h_fim_str[:2]) * 60 + int(h_fim_str[3:5])
+        if fim_min <= ini_min:
+            fim_min += 24 * 60
+
+        if novo_ini_min < fim_min and ini_min < novo_fim_min:
+            return True, h_ini_str, h_fim_str
+
+    return False, None, None
+
 def calc_minutos(h_ini_str, h_fim_str):
     fmt = "%H:%M"
     try:
